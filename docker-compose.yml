@@ -1,0 +1,54 @@
+version: "3.5"
+services:
+  app:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl http://localhost:3000/api/heartbeat"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://umami:umami@db:5432/umami
+      - DATABASE_TYPE=postgresql
+      - HASH_SALT
+      - IGNORE_HOSTNAME
+      - HOSTNAME=0.0.0.0
+      - ENABLE_TEST_CONSOLE=1
+      - APP_SECRET=${HASH_SALT}
+      - DISABLE_TELEMETRY=1
+    networks:
+      proxy_apps:
+      default:
+    labels:
+      backups: "true"
+
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=umami
+      - POSTGRES_PASSWORD=umami
+      - POSTGRES_DB=umami
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      default:
+    labels:
+      backups: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
+
+networks:
+  proxy_apps:
+    name: proxy_apps
+    external: true
