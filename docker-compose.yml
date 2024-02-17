@@ -23,8 +23,6 @@ services:
     networks:
       proxy_apps:
       default:
-    labels:
-      backups: "true"
 
   db:
     image: postgres:16-alpine
@@ -35,15 +33,27 @@ services:
       - POSTGRES_DB=umami
     volumes:
       - db_data:/var/lib/postgresql/data
+      - $PWD/backup.sh:/scripts/backup.sh:ro
     networks:
       default:
-    labels:
-      backups: "true"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.backupcron.schedule: "0 0 1 * * *"
+      ofelia.job-exec.backupcron.command: "sh /scripts/backup.sh"
+
+  cron:
+    image: mcuadros/ofelia:latest
+    depends_on:
+      - db
+    command: daemon --docker -f label=com.docker.compose.project=${COMPOSE_PROJECT_NAME}
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
 volumes:
   db_data:
