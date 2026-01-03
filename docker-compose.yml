@@ -19,9 +19,12 @@ services:
       - ENABLE_TEST_CONSOLE=1
       - APP_SECRET=${HASH_SALT}
       - DISABLE_TELEMETRY=1
+      - CADDY_DOMAIN=${CADDY_DOMAIN}
+      - CADDY_TYPE=${CADDY_TYPE:-external}
+      - CADDY_PORT=${CADDY_PORT:-3000}
     networks:
-      proxy_apps:
-      default:
+      - caddy
+      - default
 
   db:
     image: pgautoupgrade/pgautoupgrade:latest
@@ -50,6 +53,5 @@ volumes:
   db_data:
 
 networks:
-  proxy_apps:
-    name: proxy_apps
-    external: true
+  caddy:
+  default:
